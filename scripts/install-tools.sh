@@ -40,10 +40,9 @@ fi
 # ----------------------
 if ! command -v terraform >/dev/null; then
   echo "📦 Installing Terraform..."
-  curl -sLo terraform.zip https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
-  unzip -qq terraform.zip
-  chmod +x terraform
-  sudo mv terraform /usr/local/bin/
+  TERRAFORM_VERSION="1.6.6"
+  curl -sSL -o terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+  sudo unzip -o terraform.zip -d /usr/local/bin/
   rm terraform.zip
 else
   echo "✅ Terraform already installed"
