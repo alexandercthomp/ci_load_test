@@ -49,6 +49,15 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve -var grafana_admin_password="$GRAFANA_ADMIN_PASSWORD"
 
+      - name: Show docker containers
+        run: docker ps -a
+
+      - name: Inspect Kind control-plane
+        run: docker inspect ci-cluster-control-plane
+
+      - name: List listening ports
+        run: sudo ss -lnt
+
       - name: Wait for workloads to be ready
         run: |
           chmod +x scripts/wait-for-ready.sh
