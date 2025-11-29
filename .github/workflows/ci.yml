@@ -1,0 +1,68 @@
+name: kubernetes-ci-loadtest
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: |
+          chmod +x scripts/install-tools.sh
+          scripts/install-tools.sh
+
+      - name: Create KinD cluster
+        run: |
+          kind create cluster \
+            --name ci-cluster \
+            --config kind/kind-config.yaml
+
+          kubectl cluster-info
+
+      - name: Configure kubeconfig
+        run: |
+          kind get kubeconfig --name ci-cluster > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform apply
+        working-directory: terraform
+        run: terraform apply -auto-approve -var grafana_admin_password="$GRAFANA_ADMIN_PASSWORD"
+
+      - name: Wait for workloads to be ready
+        run: |
+          chmod +x scripts/wait-for-ready.sh
+          scripts/wait-for-ready.sh
+
+      - name: Run load test
+        run: |
+          chmod +x scripts/run-loadtest.sh
+          scripts/run-loadtest.sh
+
+      - name: Post results to PR
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/post-comment.sh
+          scripts/post-comment.sh

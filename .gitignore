@@ -35,3 +35,15 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Local load test output
+loadtest-results/
+
+# MacOS metadata
+.DS_Store
+
+# Kind kubeconfig backup (if any)
+kubeconfig-kind*
+
+# Local testing mock files
+tests/*.json
