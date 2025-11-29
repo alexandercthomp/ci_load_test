@@ -25,8 +25,8 @@ resource "helm_release" "this" {
         service = {
           type = "NodePort"
           nodePorts = {
-            http  = 31000
-            https = 31443
+            http  = 30080
+            https = 30443
           }
         }
 
