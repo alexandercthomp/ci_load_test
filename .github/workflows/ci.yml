@@ -58,6 +58,11 @@ jobs:
       - name: List listening ports
         run: sudo ss -lnt
 
+      - name: Debug curl inside cluster
+        run: |
+          kubectl run tmp --rm -it --restart=Never --image=curlimages/curl \
+          -- curl -s -H "Host: foo.localhost" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local
+
       - name: Wait for workloads to be ready
         run: |
           chmod +x scripts/wait-for-ready.sh
