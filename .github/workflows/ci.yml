@@ -31,6 +31,12 @@ jobs:
       - name: Debug list docker containers
         run: docker ps -a
 
+      - name: Cleanup existing Kind clusters
+        run: |
+         kind delete cluster --name ci-cluster || true
+         docker system prune -f || true
+         docker network prune -f || true
+
       - name: Create KinD cluster
         run: |
           kind create cluster \
