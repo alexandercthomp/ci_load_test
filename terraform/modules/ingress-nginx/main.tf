@@ -22,14 +22,20 @@ resource "helm_release" "this" {
       controller = {
         replicaCount = 1
 
+        # Fix GitHub Actions runner networking issues
+        # HostNetwork bypasses NodePort, kube-proxy, iptables, nftables
+        hostNetwork = true
+        dnsPolicy   = "ClusterFirstWithHostNet"
+
         service = {
-          type = "NodePort"
-          nodePorts = {
-            http  = 30080
-            https = 30443
-          }
+          type = "ClusterIP"  # Not NodePort anymore
         }
 
+        nodeSelector = {
+          "ingress-ready" = "true"   # Must match Kind node label
+        }
+
+        # Optional but good for debugging
         metrics = {
           enabled = true
         }
@@ -37,3 +43,4 @@ resource "helm_release" "this" {
     })
   ]
 }
+
