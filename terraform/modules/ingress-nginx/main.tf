@@ -27,6 +27,13 @@ resource "helm_release" "this" {
         hostNetwork = true
         dnsPolicy   = "ClusterFirstWithHostNet"
 
+        admissionWebhooks = {
+          enabled = false
+          patch = {
+            enabled = false
+          }
+        }
+        
         service = {
           type = "ClusterIP"  # Not NodePort anymore
         }
@@ -43,4 +50,3 @@ resource "helm_release" "this" {
     })
   ]
 }
-
