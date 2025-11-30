@@ -49,19 +49,18 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve -var grafana_admin_password="$GRAFANA_ADMIN_PASSWORD"
 
-      - name: Show docker containers
-        run: docker ps -a
-
-      - name: Inspect Kind control-plane
-        run: docker inspect ci-cluster-control-plane
-
-      - name: List listening ports
-        run: sudo ss -lnt
-
-      - name: Debug curl inside cluster
+      - name: Debug Kubernetes networking
         run: |
-          kubectl run tmp --rm -it --restart=Never --image=curlimages/curl \
-          -- curl -s -H "Host: foo.localhost" http://ingress-nginx-controller.ingress-nginx.svc.cluster.local
+         echo "=== ingress-nginx service ==="
+         kubectl -n ingress-nginx get svc ingress-nginx-controller -o wide
+
+         echo "=== ingress-nginx controller pod ports ==="
+         kubectl -n ingress-nginx get pod \
+         -l app.kubernetes.io/component=controller \
+         -o json | jq '.items[0].spec.containers[0].ports'
+
+         echo "=== Node listening ports (Kind control-plane) ==="
+         docker exec ci-cluster-control-plane ss -lntp
 
       - name: Wait for workloads to be ready
         run: |
