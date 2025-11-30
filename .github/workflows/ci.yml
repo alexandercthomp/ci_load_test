@@ -28,6 +28,9 @@ jobs:
           chmod +x scripts/install-tools.sh
           scripts/install-tools.sh
 
+      - name: Debug list docker containers
+        run: docker ps -a
+
       - name: Create KinD cluster
         run: |
           kind create cluster \
