@@ -7,19 +7,41 @@ OUTPUT_DIR="${OUTPUT_DIR:-loadtest-results}"
 
 mkdir -p "$OUTPUT_DIR"
 
+############################################
+# Start kubectl port-forward (CI-safe)
+############################################
+echo "🔌 Starting port-forward to ingress-nginx..."
+
+kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80 \
+  >/tmp/portforward.log 2>&1 &
+
+PF_PID=$!
+trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+INGRESS_URL="http://127.0.0.1:8080"
+
+# Give time for the tunnel to initialize
+sleep 3
+
 echo "📈 Running load test"
 echo "  Duration: $DURATION"
 echo "  Rate: $RATE rps"
+echo "  Using ingress at: $INGRESS_URL"
 
+############################################
+# Build Vegeta targets file
+############################################
 cat <<EOF > "$OUTPUT_DIR/targets.txt"
-GET http://localhost
+GET ${INGRESS_URL}
 Host: foo.localhost
 
-GET http://localhost
+GET ${INGRESS_URL}
 Host: bar.localhost
 EOF
 
-# Randomize traffic evenly
+############################################
+# Run Vegeta load test
+############################################
 vegeta attack \
   -targets="$OUTPUT_DIR/targets.txt" \
   -rate="$RATE" \
@@ -32,7 +54,9 @@ vegeta attack \
 vegeta report "$OUTPUT_DIR/results.bin" > "$OUTPUT_DIR/results.txt"
 vegeta report -type=json "$OUTPUT_DIR/results.bin" > "$OUTPUT_DIR/summary.json"
 
+############################################
 # Extract metrics
+############################################
 REQS_PER_SEC=$(jq -r '.rate' "$OUTPUT_DIR/summary.json")
 SUCCESS=$(jq -r '.success' "$OUTPUT_DIR/summary.json")
 LAT_MEAN=$(jq -r '.latencies.mean' "$OUTPUT_DIR/summary.json")
@@ -41,6 +65,9 @@ LAT_P95=$(jq -r '.latencies.p95' "$OUTPUT_DIR/summary.json")
 
 FAILURE_RATE=$(awk "BEGIN {print (1 - $SUCCESS) * 100}")
 
+############################################
+# Write Markdown summary
+############################################
 cat <<EOF > "$OUTPUT_DIR/results.md"
 ## 🚀 Load Test Results
 
@@ -58,8 +85,9 @@ cat <<EOF > "$OUTPUT_DIR/results.md"
 - P95: **${LAT_P95} ns**
 
 ### 🔍 Notes
-- Traffic was evenly distributed between \`foo.localhost\` and \`bar.localhost\`
-- Requests routed through ingress-nginx on KinD
+- Traffic was sent to \`foo.localhost\` and \`bar.localhost\`
+- Requests routed through ingress **via kubectl port-forward**
+- This bypasses NodePort networking issues on GitHub Actions
 EOF
 
 echo "✅ Load test complete"

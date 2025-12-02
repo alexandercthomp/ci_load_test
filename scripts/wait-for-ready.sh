@@ -64,15 +64,21 @@ fi
 echo "✅ ingress resource exists"
 echo "🌐 Verifying HTTP routing through ingress..."
 
+# Start port-forward to ingress-nginx service (in background)
+kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80 >/tmp/portforward.log 2>&1 &
+PF_PID=$!
+trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+INGRESS_URL="http://127.0.0.1:8080"
+
 check_route () {
   local host=$1
   local expected=$2
-  local url="${INGRESS_URL}"
 
   echo "🔎 Checking route: ${host} → ${expected}"
 
   for i in {1..20}; do
-    response=$(curl -s -H "Host: ${host}" "$url" || true)
+    response=$(curl -s -H "Host: ${host}" "${INGRESS_URL}" || true)
     if [[ "$response" == "$expected" ]]; then
       echo "✅ ${host} routing OK"
       return 0
