@@ -3,7 +3,8 @@ module "ingress_nginx" {
 }
 
 module "prometheus" {
-  source = "./modules/prometheus"
+  source                 = "./modules/prometheus"
+  grafana_admin_password = var.grafana_admin_password
 }
 
 module "foo" {

@@ -21,12 +21,14 @@ resource "helm_release" "this" {
     yamlencode({
       controller = {
         replicaCount = 1
+        hostNetwork = true
+        dnsPolicy   = "ClusterFirstWithHostNet"
 
         service = {
           type = "NodePort"
           nodePorts = {
-            http  = 31000
-            https = 31443
+            http  = 30080
+            https = 30443
           }
         }
 

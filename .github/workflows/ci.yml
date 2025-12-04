@@ -28,6 +28,15 @@ jobs:
           chmod +x scripts/install-tools.sh
           scripts/install-tools.sh
 
+      - name: Debug list docker containers
+        run: docker ps -a
+
+      - name: Cleanup existing Kind clusters
+        run: |
+         kind delete cluster --name ci-cluster || true
+         docker system prune -f || true
+         docker network prune -f || true
+
       - name: Create KinD cluster
         run: |
           kind create cluster \
@@ -48,6 +57,19 @@ jobs:
       - name: Terraform apply
         working-directory: terraform
         run: terraform apply -auto-approve -var grafana_admin_password="$GRAFANA_ADMIN_PASSWORD"
+
+      - name: Debug Kubernetes networking
+        run: |
+         echo "=== ingress-nginx service ==="
+         kubectl -n ingress-nginx get svc ingress-nginx-controller -o wide
+
+         echo "=== ingress-nginx controller pod ports ==="
+         kubectl -n ingress-nginx get pod \
+         -l app.kubernetes.io/component=controller \
+         -o json | jq '.items[0].spec.containers[0].ports'
+
+         echo "=== Node listening ports (Kind control-plane) ==="
+         docker exec ci-cluster-control-plane ss -lntp
 
       - name: Wait for workloads to be ready
         run: |
